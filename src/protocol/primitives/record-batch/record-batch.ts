@@ -1,6 +1,6 @@
 import { buf as crc32c } from 'crc-32/crc32c';
 import { ReadBuffer, type Serializable, WriteBuffer } from '../../serialization';
-import { Record } from './record';
+import { type ControlRecord, Record } from './record';
 import {
   CompressionType,
   type CompressionTypeValue,
@@ -20,7 +20,7 @@ import { Int16 } from '../int16';
 import { Int8 } from '../int8';
 import { type Array } from '../array';
 import { CompressorDeterminer } from './attributes/compressor-determiner';
-import { InvalidRecordError } from '../../exceptions';
+import { IllegalArgumentError, InvalidRecordError } from '../../exceptions';
 
 type RecordBatchParams = {
   baseOffset: Int64;
@@ -77,6 +77,12 @@ type RecordBatchAttributes = {
  * @see https://kafka.apache.org/documentation/#recordbatch
  */
 export class RecordBatch implements Serializable {
+  public static readonly CURRENT_MAGIC_VALUE = 2;
+  public static readonly NO_TIMESTAMP = -1n;
+  public static readonly NO_PRODUCER_ID = -1n;
+  public static readonly NO_PRODUCER_EPOCH = -1;
+  public static readonly NO_SEQUENCE = -1;
+
   public readonly baseOffset: Int64;
   public readonly partitionLeaderEpoch: Int32;
   public readonly magic: Int8;
@@ -87,12 +93,12 @@ export class RecordBatch implements Serializable {
   public readonly producerId: Int64;
   public readonly producerEpoch: Int16;
   public readonly baseSequence: Int32;
-  public readonly records: Array<Record>;
+  public readonly records: Array<Record> | Array<ControlRecord>;
 
   constructor(params: RecordBatchParams) {
     this.baseOffset = params.baseOffset;
     this.partitionLeaderEpoch = params.partitionLeaderEpoch;
-    this.magic = new Int8(2);
+    this.magic = new Int8(RecordBatch.CURRENT_MAGIC_VALUE);
     this.attributes = params.attributes;
     this.lastOffsetDelta = params.lastOffsetDelta;
     this.baseTimestamp = params.baseTimestamp;
@@ -153,6 +159,31 @@ export class RecordBatch implements Serializable {
   }
 
   public async serialize(buffer: WriteBuffer): Promise<void> {
+    if (this.attributes.isControlBatch !== IsControlBatch.No) {
+      throw new IllegalArgumentError('Sending control batches is not supported');
+    }
+
+    if (this.baseTimestamp.value < 0n && this.baseTimestamp.value !== RecordBatch.NO_TIMESTAMP) {
+      throw new IllegalArgumentError(`Invalid message timestamp ${this.baseTimestamp.value}`);
+    }
+
+    if (
+      this.attributes.isTransactional === IsTransactional.Yes &&
+      this.producerId.value === RecordBatch.NO_PRODUCER_ID
+    ) {
+      throw new IllegalArgumentError('Cannot write transactional messages without a valid producer ID');
+    }
+
+    if (this.producerId.value !== RecordBatch.NO_PRODUCER_ID) {
+      if (this.producerEpoch.value === RecordBatch.NO_PRODUCER_EPOCH) {
+        throw new IllegalArgumentError('Invalid negative producer epoch');
+      }
+
+      if (this.baseSequence.value < 0) {
+        throw new IllegalArgumentError('Invalid negative sequence number used');
+      }
+    }
+
     const attributes = new Int16(
       this.attributes.compressionType |
         this.attributes.timestampType |

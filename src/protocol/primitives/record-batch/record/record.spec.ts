@@ -1,11 +1,7 @@
-import { BufferUnderflowError } from '../../exceptions';
-import { ReadBuffer, WriteBuffer } from '../../serialization';
-import { CompactArray } from '../compact-array';
-import { CompactString } from '../compact-string';
-import { Int8 } from '../int8';
-import { VarInt } from '../varint';
-import { VarLong } from '../varlong';
-import { Record, RecordHeader, VarIntBytes, RecordHeaderKey } from './record';
+import { BufferUnderflowError } from '../../../exceptions';
+import { ReadBuffer, WriteBuffer } from '../../../serialization';
+import { CompactArray, CompactString, Int8, VarInt, VarLong } from '../../';
+import { Record, RecordHeader, RecordHeaderKey, VarIntBytes } from './record';
 
 describe('Record', () => {
   const attributes = new Int8(0);
