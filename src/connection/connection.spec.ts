@@ -1,12 +1,12 @@
-import { TagSection } from '../protocol/commons';
-import { Int16, Int32, NullableString, String } from '../protocol/primitives';
-import { RequestHeaderV2, type Request, type RequestHeader } from '../protocol/requests';
-import { ResponseHeaderV0 } from '../protocol/responses';
-import { WriteBuffer, type ReadBuffer, type Serializable } from '../protocol/serialization';
 import Mitm from 'mitm';
 import Net from 'net';
-import { Connection } from './connection';
+import { TagSection } from '../protocol/commons';
 import { CorrelationIdMismatchError } from '../protocol/exceptions';
+import { Int16, Int32, NullableString, String } from '../protocol/primitives';
+import { RequestHeaderV2, type Request } from '../protocol/requests';
+import { ResponseHeaderV0 } from '../protocol/responses';
+import { WriteBuffer, type ReadBuffer, type Serializable } from '../protocol/serialization';
+import { Connection } from './connection';
 
 describe('connection', () => {
   let mitm: ReturnType<typeof Mitm>;
@@ -30,8 +30,30 @@ describe('connection', () => {
   it('should resolve promises in correct order', async () => {
     const expectedString1 = new String('String 1');
     const expectedString2 = new String('String 2');
-    const sentData1 = connection.send(new TestRequestV1337(expectedString1));
-    const sentData2 = connection.send(new TestRequestV1337(expectedString2));
+    const sentData1 = connection.send(
+      new TestRequestV1337(
+        new RequestHeaderV2(
+          new Int16(99),
+          new Int16(1337),
+          new Int32(0),
+          new NullableString('client'),
+          new TagSection()
+        ),
+        expectedString1
+      )
+    );
+    const sentData2 = connection.send(
+      new TestRequestV1337(
+        new RequestHeaderV2(
+          new Int16(99),
+          new Int16(1337),
+          new Int32(1),
+          new NullableString('client'),
+          new TagSection()
+        ),
+        expectedString2
+      )
+    );
 
     serverSocket.write(createResponseMessage(expectedString1, 0));
     serverSocket.write(createResponseMessage(expectedString2, 1));
@@ -47,18 +69,40 @@ describe('connection', () => {
 
   it('should throw if there is correlationId mismatch', async () => {
     const expectedString = new String('String 1');
-    const sentData = connection.send(new TestRequestV1337(expectedString));
+    const sentData = connection.send(
+      new TestRequestV1337(
+        new RequestHeaderV2(
+          new Int16(99),
+          new Int16(1337),
+          new Int32(5),
+          new NullableString('client'),
+          new TagSection()
+        ),
+        expectedString
+      )
+    );
 
-    serverSocket.write(createResponseMessage(expectedString, 1337));
+    serverSocket.write(createResponseMessage(expectedString, 1));
 
     await expect(sentData).rejects.toThrowError(CorrelationIdMismatchError);
   });
 
   it('should receive full response', async () => {
     const expectedString = new String("I'll be blazingly fast!");
-    const sentData = connection.send(new TestRequestV1337(expectedString));
+    const sentData = connection.send(
+      new TestRequestV1337(
+        new RequestHeaderV2(
+          new Int16(99),
+          new Int16(1337),
+          new Int32(1),
+          new NullableString('client'),
+          new TagSection()
+        ),
+        expectedString
+      )
+    );
 
-    serverSocket.write(createResponseMessage(expectedString));
+    serverSocket.write(createResponseMessage(expectedString, 1));
 
     const receivedData = await sentData;
 
@@ -67,7 +111,7 @@ describe('connection', () => {
   });
 });
 
-function createResponseMessage(data: Serializable, id = 0): Buffer {
+function createResponseMessage(data: Serializable, id: number): Buffer {
   const wb = new WriteBuffer();
   data.serialize(wb);
   const dataBuffer = wb.toBuffer();
@@ -93,24 +137,16 @@ class TestResponseData {
 }
 
 class TestRequestV1337 implements Request<TestResponseData> {
-  public readonly apiKey = 99;
-  public readonly apiVersion = 1337;
   public readonly ExpectedResponseDataClass = TestResponseData;
   public readonly ExpectedResponseHeaderClass = ResponseHeaderV0;
 
-  constructor(public readonly test: String) {}
+  constructor(
+    public readonly header: RequestHeaderV2,
+    public readonly test: String
+  ) {}
 
   serialize(buffer: WriteBuffer): void {
+    this.header.serialize(buffer);
     this.test.serialize(buffer);
-  }
-
-  public buildHeader(correlationId: number, clientId: string | null = null): RequestHeader {
-    return new RequestHeaderV2(
-      new Int16(this.apiKey),
-      new Int16(this.apiVersion),
-      new Int32(correlationId),
-      new NullableString(clientId),
-      new TagSection()
-    );
   }
 }

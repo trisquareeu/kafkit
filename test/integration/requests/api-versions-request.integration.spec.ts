@@ -5,9 +5,12 @@ import {
   ApiVersionsRequestV0,
   ApiVersionsRequestV1,
   ApiVersionsRequestV2,
-  ApiVersionsRequestV3
+  ApiVersionsRequestV3,
+  RequestHeaderV1,
+  RequestHeaderV2
 } from '../../../src/protocol/requests';
-import { CompactString } from '../../../src/protocol/primitives';
+import { CompactString, Int16, Int32, NullableString } from '../../../src/protocol/primitives';
+import { TagSection } from '../../../src/protocol/commons';
 
 jest.setTimeout(120_000);
 
@@ -37,7 +40,9 @@ describe('ApiVersionsRequest', () => {
 
   describe('v0', () => {
     it('should send the request and properly parse the response', async () => {
-      const request = new ApiVersionsRequestV0();
+      const request = new ApiVersionsRequestV0(
+        new RequestHeaderV1(new Int16(18), new Int16(0), new Int32(5), new NullableString('test'))
+      );
       const response = await connection.send(request);
 
       expect(response).toBeInstanceOf(request.ExpectedResponseDataClass);
@@ -46,7 +51,9 @@ describe('ApiVersionsRequest', () => {
 
   describe('v1', () => {
     it('should send the request and properly parse the response', async () => {
-      const request = new ApiVersionsRequestV1();
+      const request = new ApiVersionsRequestV1(
+        new RequestHeaderV1(new Int16(18), new Int16(1), new Int32(5), new NullableString('test'))
+      );
       const response = await connection.send(request);
 
       expect(response).toBeInstanceOf(request.ExpectedResponseDataClass);
@@ -55,7 +62,9 @@ describe('ApiVersionsRequest', () => {
 
   describe('v2', () => {
     it('should send the request and properly parse the response', async () => {
-      const request = new ApiVersionsRequestV2();
+      const request = new ApiVersionsRequestV2(
+        new RequestHeaderV1(new Int16(18), new Int16(2), new Int32(5), new NullableString('test'))
+      );
       const response = await connection.send(request);
 
       expect(response).toBeInstanceOf(request.ExpectedResponseDataClass);
@@ -64,7 +73,11 @@ describe('ApiVersionsRequest', () => {
 
   describe('v3', () => {
     it('should send the request and properly parse the response', async () => {
-      const request = new ApiVersionsRequestV3(new CompactString('the-best-kafka-client'), new CompactString('1.0.0'));
+      const request = new ApiVersionsRequestV3(
+        new RequestHeaderV2(new Int16(18), new Int16(3), new Int32(5), new NullableString('test'), new TagSection([])),
+        new CompactString('the-best-kafka-client'),
+        new CompactString('1.0.0')
+      );
       const response = await connection.send(request);
 
       expect(response).toBeInstanceOf(request.ExpectedResponseDataClass);

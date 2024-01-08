@@ -17,9 +17,7 @@ type Deserializable<T> = {
  * @see https://kafka.apache.org/24/protocol.html#protocol_compatibility
  */
 export interface Request<T> extends Serializable {
-  readonly apiKey: number;
-  readonly apiVersion: number;
-
+  readonly header: RequestHeader;
   /**
    * Subtype of the ResponseHeader that is expected as a response to this request.
    */
@@ -29,7 +27,6 @@ export interface Request<T> extends Serializable {
    * Subtype of the ResponseData that is expected as a response to this request.
    */
   ExpectedResponseDataClass: Deserializable<T>;
-
-  buildHeader(correlationId: number): RequestHeader;
-  buildHeader(correlationId: number, clientId: string | null): RequestHeader;
 }
+
+export type RequestResponseType<T extends Request<any>> = InstanceType<T['ExpectedResponseDataClass']>;
