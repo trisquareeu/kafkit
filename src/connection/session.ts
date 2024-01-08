@@ -1,5 +1,4 @@
 import { createConnection } from 'net';
-import { type CompactString, type NullableString } from '../protocol/primitives';
 import { ApiVersionsRequestBuilder } from '../protocol/requests/api-versions/api-versions-request-builder';
 import { type RequestBuilder } from '../protocol/requests/request-builder';
 import { Connection } from './connection';
@@ -12,7 +11,7 @@ type SupportedApiVersions = {
 };
 
 export class Session {
-  constructor(
+  private constructor(
     private correlationId: number,
     private readonly connection: Connection,
     private readonly apiVersions: SupportedApiVersions
@@ -21,9 +20,9 @@ export class Session {
   public static async create(
     host: string,
     port: number,
-    clientId: NullableString,
-    clientSoftwareName: CompactString,
-    clientSoftwareVersion: CompactString
+    clientId: string | null,
+    clientSoftwareName: string,
+    clientSoftwareVersion: string
   ): Promise<Session> {
     const connection = new Connection(createConnection({ host, port }));
     let correlationId = 0;
@@ -48,7 +47,6 @@ export class Session {
     );
 
     //todo #1: if ApiVersionsRequest version is not supported, fallback to v0
-    //todo #2: placeholder for authenticator
 
     return new Session(correlationId, connection, supportedApiVersions);
   }

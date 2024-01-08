@@ -33,7 +33,7 @@ export class CompressedRecords {
   public async serialize(buffer: WriteBuffer): Promise<void> {
     const temporary = new WriteBuffer();
 
-    this._value.serialize(temporary);
+    await this._value.serialize(temporary);
 
     const temporaryBuffer = temporary.toBuffer();
 

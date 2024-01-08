@@ -1,5 +1,5 @@
 import { TagSection } from '../../commons';
-import { type CompactString, Int16, Int32, type NullableString } from '../../primitives';
+import { CompactString, Int16, Int32, NullableString } from '../../primitives';
 import { RequestHeaderV1, RequestHeaderV2 } from '../headers';
 import { type RequestBuilder } from '../request-builder';
 import { ApiVersionsRequestV0 } from './api-versions-request-v0';
@@ -17,9 +17,9 @@ export class ApiVersionsRequestBuilder implements RequestBuilder<ApiVersionsRequ
   private static readonly apiKey = 18;
 
   constructor(
-    private readonly clientId: NullableString,
-    private readonly clientSoftwareName: CompactString,
-    private readonly clientSoftwareVersion: CompactString
+    private readonly clientId: string | null,
+    private readonly clientSoftwareName: string,
+    private readonly clientSoftwareVersion: string
   ) {}
 
   public getApiKey(): number {
@@ -38,7 +38,7 @@ export class ApiVersionsRequestBuilder implements RequestBuilder<ApiVersionsRequ
             new Int16(ApiVersionsRequestBuilder.apiKey),
             new Int16(0),
             new Int32(correlationId),
-            this.clientId
+            new NullableString(this.clientId)
           )
         );
       case 1:
@@ -47,7 +47,7 @@ export class ApiVersionsRequestBuilder implements RequestBuilder<ApiVersionsRequ
             new Int16(ApiVersionsRequestBuilder.apiKey),
             new Int16(1),
             new Int32(correlationId),
-            this.clientId
+            new NullableString(this.clientId)
           )
         );
       case 2:
@@ -56,7 +56,7 @@ export class ApiVersionsRequestBuilder implements RequestBuilder<ApiVersionsRequ
             new Int16(ApiVersionsRequestBuilder.apiKey),
             new Int16(2),
             new Int32(correlationId),
-            this.clientId
+            new NullableString(this.clientId)
           )
         );
       case 3:
@@ -66,11 +66,11 @@ export class ApiVersionsRequestBuilder implements RequestBuilder<ApiVersionsRequ
             new Int16(ApiVersionsRequestBuilder.apiKey),
             new Int16(3),
             new Int32(correlationId),
-            this.clientId,
+            new NullableString(this.clientId),
             new TagSection()
           ),
-          this.clientSoftwareName,
-          this.clientSoftwareVersion,
+          new CompactString(this.clientSoftwareName),
+          new CompactString(this.clientSoftwareVersion),
           new TagSection()
         );
     }

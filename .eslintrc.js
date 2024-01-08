@@ -74,7 +74,8 @@ module.exports = {
       }
     ],
     'newline-before-return': 'error',
-    'no-throw-literal': 'error'
+    'no-throw-literal': 'error',
+    '@typescript-eslint/no-floating-promises': ['error']
   },
   overrides: [
     {

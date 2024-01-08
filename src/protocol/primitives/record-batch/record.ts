@@ -1,6 +1,5 @@
 import { NullInNonNullableFieldError } from '../../exceptions';
 import { ReadBuffer, WriteBuffer, type Serializable } from '../../serialization';
-import { CompactArray } from '../compact-array';
 import { Int8 } from '../int8';
 import { VarInt } from '../varint';
 import { VarLong } from '../varlong';
@@ -32,13 +31,39 @@ export class RecordHeader implements Serializable {
   }
 }
 
+export class RecordHeaderArray implements Serializable {
+  constructor(private readonly _value: RecordHeader[]) {}
+
+  public get value(): readonly RecordHeader[] {
+    return this._value;
+  }
+
+  public static deserialize(buffer: ReadBuffer): RecordHeaderArray {
+    const length = VarInt.deserialize(buffer);
+
+    const value: RecordHeader[] = [];
+    for (let i = 0; i < length.value; i++) {
+      value.push(RecordHeader.deserialize(buffer));
+    }
+
+    return new RecordHeaderArray(value);
+  }
+
+  public async serialize(buffer: WriteBuffer): Promise<void> {
+    new VarInt(this.value.length).serialize(buffer);
+    for (const item of this.value) {
+      item.serialize(buffer);
+    }
+  }
+}
+
 type RecordParams = {
   attributes?: Int8;
   timestampDelta: VarLong;
   offsetDelta: VarInt;
   key: VarIntBytes;
   value: VarIntBytes;
-  headers: CompactArray<RecordHeader>;
+  headers: RecordHeaderArray;
 };
 
 /**
@@ -63,7 +88,7 @@ export class Record implements Serializable {
   public readonly offsetDelta: VarInt;
   public readonly key: VarIntBytes;
   public readonly value: VarIntBytes;
-  public readonly headers: CompactArray<RecordHeader>;
+  public readonly headers: RecordHeaderArray;
 
   constructor(params: RecordParams) {
     this.attributes = params.attributes ?? new Int8(0);
@@ -83,7 +108,7 @@ export class Record implements Serializable {
     const offsetDelta = VarInt.deserialize(temporary);
     const key = VarIntBytes.deserialize(temporary);
     const value = VarIntBytes.deserialize(temporary);
-    const headers = CompactArray.deserialize(temporary, RecordHeader.deserialize);
+    const headers = RecordHeaderArray.deserialize(temporary);
 
     return new Record({
       attributes,
@@ -95,7 +120,7 @@ export class Record implements Serializable {
     });
   }
 
-  public serialize(buffer: WriteBuffer): void {
+  public async serialize(buffer: WriteBuffer): Promise<void> {
     const temporary = new WriteBuffer();
 
     this.attributes.serialize(temporary);
@@ -103,7 +128,7 @@ export class Record implements Serializable {
     this.offsetDelta.serialize(temporary);
     this.key.serialize(temporary);
     this.value.serialize(temporary);
-    this.headers.serialize(temporary);
+    await this.headers.serialize(temporary);
 
     const tempBuf = temporary.toBuffer();
     new VarInt(tempBuf.length).serialize(buffer);

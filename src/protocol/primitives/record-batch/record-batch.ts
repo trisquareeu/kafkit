@@ -54,7 +54,7 @@ type RecordBatchAttributes = {
  *  magic: int8 (current magic value is 2)
  *  crc: int32
  *  attributes: int16
- *      bit 0~2:
+ *      bit 0\~2:
  *          0: no compression
  *          1: gzip
  *          2: snappy
@@ -64,7 +64,7 @@ type RecordBatchAttributes = {
  *      bit 4: isTransactional (0 means not transactional)
  *      bit 5: isControlBatch (0 means not a control batch)
  *      bit 6: hasDeleteHorizonMs (0 means baseTimestamp is not set as the delete horizon for compaction)
- *      bit 7~15: unused
+ *      bit 7\~15: unused
  *  lastOffsetDelta: int32
  *  baseTimestamp: int64
  *  maxTimestamp: int64

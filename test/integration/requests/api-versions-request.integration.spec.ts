@@ -1,6 +1,8 @@
-import { createConnection, type Socket } from 'net';
 import { KafkaContainer, type StartedKafkaContainer } from '@testcontainers/kafka';
+import { type Socket } from 'net';
 import { Connection } from '../../../src/connection/connection';
+import { TagSection } from '../../../src/protocol/commons';
+import { CompactString, Int16, Int32, NullableString } from '../../../src/protocol/primitives';
 import {
   ApiVersionsRequestV0,
   ApiVersionsRequestV1,
@@ -9,8 +11,7 @@ import {
   RequestHeaderV1,
   RequestHeaderV2
 } from '../../../src/protocol/requests';
-import { CompactString, Int16, Int32, NullableString } from '../../../src/protocol/primitives';
-import { TagSection } from '../../../src/protocol/commons';
+import { KafkaBrokerUtils } from '../../utils';
 
 jest.setTimeout(120_000);
 
@@ -20,17 +21,19 @@ describe('ApiVersionsRequest', () => {
   let socket: Socket;
   let connection: Connection;
   let container: StartedKafkaContainer;
+  let brokerUtils: KafkaBrokerUtils;
 
   beforeAll(async () => {
     container = await new KafkaContainer('confluentinc/cp-kafka:7.3.2').withExposedPorts(port).withReuse().start();
+    brokerUtils = new KafkaBrokerUtils(container);
   });
 
   afterAll(async () => {
-    container.stop();
+    await container.stop();
   });
 
   beforeEach(async () => {
-    socket = await createConnectedSocket(container.getHost(), container.getMappedPort(port));
+    socket = await brokerUtils.getConnectedSocket();
     connection = new Connection(socket);
   });
 
@@ -84,17 +87,3 @@ describe('ApiVersionsRequest', () => {
     });
   });
 });
-
-function createConnectedSocket(host: string, port: number): Promise<Socket> {
-  const socket = createConnection(port, host);
-
-  return new Promise((resolve, reject) => {
-    socket.on('connect', () => {
-      resolve(socket);
-    });
-
-    socket.on('error', (error) => {
-      reject(error);
-    });
-  });
-}

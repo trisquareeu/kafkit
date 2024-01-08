@@ -53,13 +53,13 @@ describe('RequestHeaderV2', () => {
     expect(buffer.toBuffer()).toEqual(Buffer.from([0x00, 0x63, 0x00, 0x58, 0x07, 0x5b, 0xcd, 0x15, 0xff, 0xff, 0x00]));
   });
 
-  it('should properly serialize when using tagged fields', () => {
+  it('should properly serialize when using tagged fields', async () => {
     const header = new RequestHeaderV2(
       new Int16(99),
       new Int16(88),
       new Int32(123456789),
       new NullableString('someClientId'),
-      new TagSection([TaggedField.from(0, new CompactNullableString('someClusterId'))])
+      new TagSection([await TaggedField.from(0, new CompactNullableString('someClusterId'))])
     );
 
     const buffer = new WriteBuffer();

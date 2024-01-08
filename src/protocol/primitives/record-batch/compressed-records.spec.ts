@@ -7,13 +7,12 @@ import {
   type Compressor
 } from '../../compression';
 import { ReadBuffer, WriteBuffer } from '../../serialization';
-import { CompactArray } from '../compact-array';
 import { Int8 } from '../int8';
 import { NonNullableArray } from '../non-nullable-array';
 import { VarInt } from '../varint';
 import { VarLong } from '../varlong';
 import { CompressedRecords } from './compressed-records';
-import { Record, RecordHeader, RecordHeaderKey, VarIntBytes } from './record';
+import { Record, RecordHeader, RecordHeaderArray, RecordHeaderKey, VarIntBytes } from './record';
 
 describe('CompressedRecords', () => {
   const compressors: Compressor[] = [
@@ -33,15 +32,12 @@ describe('CompressedRecords', () => {
           timestampDelta: new VarLong(0n),
           key: new VarIntBytes(Buffer.from('key')),
           value: new VarIntBytes(Buffer.from('value')),
-          headers: new CompactArray(
-            [new RecordHeader(new RecordHeaderKey('headerKey'), new VarIntBytes(Buffer.from('headerValue')))],
-            (header, buffer) => header.serialize(buffer)
-          )
+          headers: new RecordHeaderArray([
+            new RecordHeader(new RecordHeaderKey('headerKey'), new VarIntBytes(Buffer.from('headerValue')))
+          ])
         })
       ],
-      (record, buffer) => {
-        record.serialize(buffer);
-      }
+      async (record, buffer) => record.serialize(buffer)
     );
 
     const compressed = new CompressedRecords(array, compressor);

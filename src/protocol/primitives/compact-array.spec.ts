@@ -109,15 +109,18 @@ describe('CompactArray', () => {
     }
   ];
 
-  it.each(cases)('should serialize and deserialize into the same value', ({ value, deserializer, serializer }) => {
-    const array = new CompactArray(value, serializer);
+  it.each(cases)(
+    'should serialize and deserialize into the same value',
+    async ({ value, deserializer, serializer }) => {
+      const array = new CompactArray(value, serializer);
 
-    const writeBuffer = new WriteBuffer();
-    array.serialize(writeBuffer);
+      const writeBuffer = new WriteBuffer();
+      await array.serialize(writeBuffer);
 
-    const readBuffer = new ReadBuffer(writeBuffer.toBuffer());
-    const deserialized = CompactArray.deserialize(readBuffer, deserializer);
+      const readBuffer = new ReadBuffer(writeBuffer.toBuffer());
+      const deserialized = CompactArray.deserialize(readBuffer, deserializer);
 
-    expect(deserialized.value).toEqual(array.value);
-  });
+      expect(deserialized.value).toEqual(array.value);
+    }
+  );
 });

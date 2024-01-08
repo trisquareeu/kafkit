@@ -25,9 +25,9 @@ export class TaggedField implements Serializable {
     public readonly data: Buffer
   ) {}
 
-  public static from(tag: number, data: Serializable): TaggedField {
+  public static async from(tag: number, data: Serializable): Promise<TaggedField> {
     const writeBuffer = new WriteBuffer();
-    data.serialize(writeBuffer);
+    await data.serialize(writeBuffer);
 
     return new TaggedField(new UVarInt(tag), writeBuffer.toBuffer());
   }

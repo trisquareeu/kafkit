@@ -32,21 +32,21 @@ describe('TagSection', () => {
     expect(buffer.toBuffer()).toEqual(Buffer.from([0x00]));
   });
 
-  it('should throw error when trying to use unordered fields', () => {
+  it('should throw error when trying to use unordered fields', async () => {
     const fields = [
-      TaggedField.from(0, new CompactNullableString('field 0')),
-      TaggedField.from(2, new CompactNullableString('field 2')),
-      TaggedField.from(1, new CompactNullableString('field 1'))
+      await TaggedField.from(0, new CompactNullableString('field 0')),
+      await TaggedField.from(2, new CompactNullableString('field 2')),
+      await TaggedField.from(1, new CompactNullableString('field 1'))
     ];
 
     expect(() => new TagSection(fields)).toThrow('Invalid or out-of-order tag 1');
   });
 
-  it('should have an immutable content to ensure ordering', () => {
+  it('should have an immutable content to ensure ordering', async () => {
     const fields: TaggedField[] = [];
     const tagSection = new TagSection(fields);
 
-    fields.push(TaggedField.from(0, new CompactNullableString(null)));
+    fields.push(await TaggedField.from(0, new CompactNullableString(null)));
 
     expect(tagSection.fields.length).toEqual(0);
   });

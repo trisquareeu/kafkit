@@ -6,21 +6,21 @@ import { Int8 } from './int8';
 import { NonNullableArray } from './non-nullable-array';
 
 describe('NonNullableArray', () => {
-  it('should throw when deserializing null', () => {
+  it('should throw when deserializing null', async () => {
     const array = new Array(null, () => {});
 
     const writeBuffer = new WriteBuffer();
-    array.serialize(writeBuffer);
+    await array.serialize(writeBuffer);
     const readBuffer = new ReadBuffer(writeBuffer.toBuffer());
 
     expect(() => NonNullableArray.deserialize(readBuffer, () => {})).toThrowError(NullInNonNullableFieldError);
   });
 
-  it('should deserialize serialized array', () => {
+  it('should deserialize serialized array', async () => {
     const array = new Array([new Int8(1), new Int8(2)], (item, buffer) => item.serialize(buffer));
 
     const writeBuffer = new WriteBuffer();
-    array.serialize(writeBuffer);
+    await array.serialize(writeBuffer);
     const readBuffer = new ReadBuffer(writeBuffer.toBuffer());
 
     const deserialized = NonNullableArray.deserialize(readBuffer, (buffer) => Int8.deserialize(buffer));

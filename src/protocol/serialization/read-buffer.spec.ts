@@ -1,5 +1,4 @@
 import { ReadBuffer } from './read-buffer';
-import { describe } from 'node:test';
 import { BufferUnderflowError } from '../exceptions';
 
 describe('ReadBuffer', () => {

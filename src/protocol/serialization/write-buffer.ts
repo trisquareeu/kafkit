@@ -10,6 +10,10 @@ export class WriteBuffer {
     return 1 << (31 - Math.clz32(n) + 1);
   }
 
+  public getOffset(): number {
+    return this.offset;
+  }
+
   public writeInt8(value: number): WriteBuffer {
     return this.writeInt(value, 1);
   }

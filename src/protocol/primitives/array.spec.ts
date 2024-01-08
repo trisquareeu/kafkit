@@ -96,19 +96,38 @@ describe('Array', () => {
       ],
       deserializer: CompactNullableBytes.deserialize,
       serializer: (item: CompactNullableBytes, buffer) => item.serialize(buffer)
+    },
+    {
+      value: [
+        new CompactNullableBytes(null),
+        new CompactNullableBytes(Buffer.from([1])),
+        new CompactNullableBytes(Buffer.from([1, 2, 3]))
+      ],
+      deserializer: CompactNullableBytes.deserialize,
+      serializer: async (item: CompactNullableBytes, buffer) => {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            item.serialize(buffer);
+            resolve();
+          }, 1000);
+        });
+      }
     }
   ];
 
-  it.each(cases)('should serialize and deserialize into the same value', ({ value, deserializer, serializer }) => {
-    // eslint-disable-next-line @typescript-eslint/no-array-constructor
-    const array = new Array(value, serializer);
+  it.each(cases)(
+    'should serialize and deserialize into the same value',
+    async ({ value, deserializer, serializer }) => {
+      // eslint-disable-next-line @typescript-eslint/no-array-constructor
+      const array = new Array(value, serializer);
 
-    const writeBuffer = new WriteBuffer();
-    array.serialize(writeBuffer);
+      const writeBuffer = new WriteBuffer();
+      await array.serialize(writeBuffer);
 
-    const readBuffer = new ReadBuffer(writeBuffer.toBuffer());
-    const deserialized = Array.deserialize(readBuffer, deserializer);
+      const readBuffer = new ReadBuffer(writeBuffer.toBuffer());
+      const deserialized = Array.deserialize(readBuffer, deserializer);
 
-    expect(deserialized.value).toEqual(array.value);
-  });
+      expect(deserialized.value).toEqual(array.value);
+    }
+  );
 });
