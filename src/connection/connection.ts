@@ -1,7 +1,7 @@
 import { type Socket } from 'net';
 import { type ReadBuffer, WriteBuffer } from '../protocol/serialization';
 import { ResponseReader } from './response-reader';
-import { type Request } from '../protocol/requests';
+import { type RequestResponseType, type Request } from '../protocol/requests';
 import { CorrelationIdMismatchError } from '../protocol/exceptions';
 
 type InflightRequest<T> = {
@@ -12,8 +12,6 @@ type InflightRequest<T> = {
 };
 
 export class Connection {
-  private correlationId = 0;
-
   private readonly responseReader: ResponseReader;
 
   private readonly inFlightRequests: InflightRequest<any>[] = [];
@@ -23,23 +21,22 @@ export class Connection {
     socket.on('data', (stream) => this.responseReader.maybeReadResponse(stream));
   }
 
-  public async send<T>(request: Request<T>): Promise<T> {
-    const correlationId = this.nextCorrelationId();
+  public async send<T extends Request<any>>(request: T): Promise<RequestResponseType<T>> {
     const serializedRequest = new WriteBuffer();
-    request.buildHeader(correlationId).serialize(serializedRequest);
     request.serialize(serializedRequest);
 
     const header = Buffer.alloc(4);
     header.writeInt32BE(serializedRequest.toBuffer().length);
     this.socket.write(Buffer.concat([header, serializedRequest.toBuffer()]));
+    //todo: implement problem handling
 
-    return new Promise<T>((resolve, reject) => {
-      this.inFlightRequests.push({ request, resolve, reject, correlationId });
+    return new Promise<RequestResponseType<T>>((resolve, reject) => {
+      this.inFlightRequests.push({ request, resolve, reject, correlationId: request.header.correlationId.value });
     });
   }
 
-  private nextCorrelationId(): number {
-    return this.correlationId++;
+  public isHealthy(): boolean {
+    return this.socket.writable && this.socket.readable;
   }
 
   private handleResponse(buffer: ReadBuffer): void {
